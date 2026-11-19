@@ -4,27 +4,37 @@
 
 const LISTENER = "http://localhost:9000/log";
 
-// --- session counters shown in the popup ---
-async function bump(kind) {
-  const k = "counts";
-  const cur = (await chrome.storage.session.get(k))[k] || { total: 0, byType: {} };
-  cur.total++;
-  cur.byType[kind] = (cur.byType[kind] || 0) + 1;
-  cur.lastSent = Date.now();
-  await chrome.storage.session.set({ [k]: cur });
+// Serialize read/modify/write operations so concurrent events cannot lose counts.
+let statsWrite = Promise.resolve();
+
+function recordCapture(outcome, type) {
+  statsWrite = statsWrite.then(async () => {
+    const { captureStats } = await chrome.storage.session.get("captureStats");
+    const stats = captureStats || { delivered: 0, rejected: 0, unavailable: 0, suppressed: 0, byType: {} };
+    stats[outcome]++;
+    if (outcome === "delivered") {
+      stats.byType[type] = (stats.byType[type] || 0) + 1;
+    }
+    await chrome.storage.session.set({ captureStats: stats });
+  }).catch((error) => {
+    console.warn("Unable to save capture statistics", error);
+  });
+  return statsWrite;
 }
 
 async function sendLog(data) {
+  let response;
   try {
-    await fetch(LISTENER, {
+    response = await fetch(LISTENER, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
+      signal: AbortSignal.timeout(5000),
     });
-    bump(data.type);
-  } catch (err) {
-    // Listener not running yet — fail quietly, the user just hasn't opened the app.
+  } catch {
+    return recordCapture("unavailable");
   }
+  return recordCapture(response.ok ? "delivered" : "rejected", data.type);
 }
 
 const now = () => new Date().toLocaleTimeString();
@@ -55,7 +65,7 @@ chrome.cookies.onChanged.addListener((change) => {
 });
 
 /* ---------------------------- network requests ---------------------------- */
-// webRequest can be very chatty, so we debounce per-domain (one event / 4s)
+// webRequest can be very chatty, so we debounce per-domain (one event / 10s)
 // and only report request types that matter for forensics.
 const REPORT_TYPES = new Set([
   "xmlhttprequest",
@@ -109,7 +119,10 @@ chrome.webRequest.onCompleted.addListener(
 
     const key = domain;
     const last = lastSeen.get(key) || 0;
-    if (Date.now() - last < DEBOUNCE_MS) return;
+    if (Date.now() - last < DEBOUNCE_MS) {
+      recordCapture("suppressed");
+      return;
+    }
     lastSeen.set(key, Date.now());
 
     sendLog({
@@ -141,8 +154,21 @@ chrome.downloads.onCreated.addListener((item) => {
 
 /* -------------------- relay from page-world content script ---------------- */
 // content.js (MAIN world) -> relay.js (isolated) -> here.
+const PAGE_FIELDS = {
+  storage: ["storageArea", "action", "key"],
+  permission: ["permission"],
+  fingerprint: ["method"],
+};
+
 chrome.runtime.onMessage.addListener((msg, sender) => {
-  if (!msg || msg.__bf !== true) return;
-  const base = { time: now(), url: sender?.tab?.url, domain: hostOf(sender?.tab?.url || "") };
-  sendLog({ ...base, ...msg.payload });
+  if (msg?.__bf !== true || !sender?.tab || !msg.payload) return;
+  const { type } = msg.payload;
+  if (typeof type !== "string" || !Object.hasOwn(PAGE_FIELDS, type)) return;
+
+  const url = sender.tab.url;
+  const event = { type, time: now(), url, domain: hostOf(url || ""), source: "page-observation" };
+  for (const field of PAGE_FIELDS[type]) {
+    if (typeof msg.payload[field] === "string") event[field] = msg.payload[field];
+  }
+  sendLog(event);
 });

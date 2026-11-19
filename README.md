@@ -74,7 +74,13 @@ to an on-disk JSONL store, so you never get a broken launch.
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select the `extension/` folder
 
-The popup shows whether the listener is online and how many events it has sent.
+The popup shows the listener status and delivery counts for this browser session.
+A **delivered** event received a successful response from the listener.
+**Rejected by listener** means it received an HTTP error. **No response** means
+delivery could not be confirmed, for example while the desktop app is closed.
+**Repeat requests skipped** counts eligible network events suppressed by the
+10-second per-domain filter. The popup does not count events outside the
+extension's capture rules. It does not retry failed deliveries.
 
 ### 3. Resource monitor (optional)
 ```bash
@@ -100,6 +106,16 @@ extension/  MV3 extension — manifest, background, content + relay, popup
 monitor/    Python resource agent — monitor.py, requirements.txt
 data/       created at runtime (forensics.db or events.jsonl + cases.json)
 ```
+
+## Live capture coverage
+
+| Signal | What the extension observes | Coverage limit |
+| --- | --- | --- |
+| Tabs and navigation | Tab activations and completed top-frame navigations | Subframes and same-document route changes are outside these rules. |
+| Cookies | Cookie change metadata | Cookie values are outside this rule. |
+| Network | Completed XHR, WebSocket, and ping events that match the tracker or third-party filter | Repeated eligible requests from the same domain are suppressed for 10 seconds. |
+| Downloads | Download creation | Later progress and completion are outside this rule. |
+| Page APIs | Selected storage, permission-request, and fingerprinting API calls | These are page-provided observations. Corroborate them with browser-generated records when drawing conclusions. |
 
 ## Privacy properties
 Local only · no cloud · no external storage · no API keys · no telemetry ·
