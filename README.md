@@ -2,7 +2,7 @@
 
 A completely local browser forensic and live-activity intelligence system.
 Runs only on your PC — no cloud, no external APIs, no telemetry, no accounts,
-no internet dependency. The only network traffic is the browser extension
+no internet connection required after setup. The only network traffic is the browser extension
 talking to the desktop app on `localhost:9000`.
 
 ```
@@ -37,12 +37,24 @@ permissions, executable downloads, suspicious TLDs, and resource spikes.
 
 ## Setup
 
-### 1. Desktop app
-```bash
+### 1. Install Node.js, npm, and Electron
+
+Install a current [Node.js LTS release](https://nodejs.org/en/download) (22.12.0 or newer). The Node.js installer includes npm. Open a new PowerShell window and verify that both commands work.
+
+```powershell
+node --version
+npm --version
+```
+
+From the project folder, install the dependencies and start the desktop app.
+
+```powershell
 cd desktop
-npm install        # installs Electron + Express only — no native build step
+npm ci
 npm start
 ```
+
+`npm ci` installs the versions in `desktop/package-lock.json`, including Electron and Express. Electron may download its runtime on the first launch. Keep your internet connection active during setup.
 
 The persistent store uses **Node's built-in SQLite** (`node:sqlite`), which is
 compiled into the Node runtime inside Electron. There is no native module to
@@ -91,5 +103,5 @@ data/       created at runtime (forensics.db or events.jsonl + cases.json)
 
 ## Privacy properties
 Local only · no cloud · no external storage · no API keys · no telemetry ·
-no third-party analytics · no accounts · no internet dependency. The listener
+no third-party analytics · no accounts · no internet connection required for local use. The listener
 rejects any connection that isn't from `127.0.0.1`.
