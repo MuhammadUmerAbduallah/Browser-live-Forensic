@@ -1,0 +1,16 @@
+{
+  "name": "browser-forensics-desktop",
+  "version": "2.1.0",
+  "description": "Local browser forensic and live activity intelligence (desktop app + listener + persistent store).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:sqlite-flag": "electron --experimental-sqlite ."
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "electron": "^42.2.0"
+  }
+}

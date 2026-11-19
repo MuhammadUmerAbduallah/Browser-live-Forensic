@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Browser Forensics</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="pulse" id="livedot"></span>
+      <span class="brand-name">BROWSER&nbsp;FORENSICS</span>
+      <span class="brand-sub" id="backendTag">local</span>
+    </div>
+    <div class="kpis" id="kpis">
+      <div class="kpi"><span class="kpi-num" id="kpiTotal">0</span><span class="kpi-label">events</span></div>
+      <div class="kpi high"><span class="kpi-num" id="kpiHigh">0</span><span class="kpi-label">high</span></div>
+      <div class="kpi med"><span class="kpi-num" id="kpiMed">0</span><span class="kpi-label">medium</span></div>
+      <div class="kpi info"><span class="kpi-num" id="kpiInfo">0</span><span class="kpi-label">info</span></div>
+      <button id="clearData" class="btn ghost" title="Delete all stored events and cases">Clear data</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="live">Live</button>
+    <button class="tab" data-tab="history">History</button>
+    <button class="tab" data-tab="search">Search</button>
+    <button class="tab" data-tab="cookies">Cookies</button>
+    <button class="tab" data-tab="domains">Domains</button>
+<button class="tab" data-tab="investigation">Investigation</button>
+    <button class="tab" data-tab="sessions">Sessions</button>
+    <button class="tab" data-tab="findings">Findings</button>
+    <button class="tab" data-tab="timeline">Timeline</button>
+    <button class="tab" data-tab="extensions">Extensions</button>
+    <button class="tab" data-tab="cache">Cache</button>
+    <button class="tab" data-tab="integrity">Integrity</button>
+    <button class="tab" data-tab="reports">Reports</button>
+    <button class="tab" data-tab="hunting">Threat Hunting</button>
+    <button class="tab" data-tab="graph">Graph</button>
+    <button class="tab" data-tab="cases">Cases</button>
+    <button class="tab" data-tab="acquire">Acquire</button>
+  </nav>
+
+  <main>
+    <!-- LIVE -->
+    <section class="view active" id="view-live">
+      <div class="view-head">
+        <h2>Live activity</h2>
+        <div class="row-controls">
+          <label class="chk"><input type="checkbox" id="pauseLive" /> Pause</label>
+          <select id="liveRisk">
+            <option value="">All risk</option>
+            <option value="HIGH">High only</option>
+            <option value="MEDIUM">Medium+</option>
+          </select>
+        </div>
+      </div>
+      <div class="feed" id="liveFeed"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="view" id="view-history">
+      <div class="view-head"><h2>History</h2>
+        <div class="row-controls"><span class="muted" id="historyCount"></span></div>
+      </div>
+      <div class="feed" id="historyFeed"></div>
+      <div class="more"><button id="historyMore" class="btn ghost">Load more</button></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="view" id="view-search">
+      <div class="view-head"><h2>Search &amp; filter</h2></div>
+      <div class="filters">
+        <input id="fQ" placeholder="Search title, url, domain, cookie…" />
+        <select id="fType">
+          <option value="">Any type</option>
+          <option value="tab">tab</option>
+          <option value="navigation">navigation</option>
+          <option value="request">request</option>
+          <option value="tracker">tracker</option>
+          <option value="cookie">cookie</option>
+          <option value="storage">storage</option>
+          <option value="permission">permission</option>
+          <option value="fingerprint">fingerprint</option>
+          <option value="download">download</option>
+          <option value="resource">resource</option>
+        </select>
+        <select id="fRisk">
+          <option value="">Any risk</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <input id="fDomain" placeholder="domain contains…" />
+        <label class="chk">from <input id="fSince" type="datetime-local" /></label>
+        <label class="chk">to <input id="fUntil" type="datetime-local" /></label>
+        <button id="runSearch" class="btn">Search</button>
+        <button id="saveCase" class="btn ghost">Save as case →</button>
+      </div>
+      <div class="feed" id="searchFeed"></div>
+    </section>
+
+    <!-- COOKIES -->
+    <section class="view" id="view-cookies">
+      <div class="view-head"><h2>Cookie intelligence</h2></div>
+      <table class="grid"><thead>
+        <tr><th>Risk</th><th>Cookie</th><th>Domain</th><th>Changes</th><th>Last seen</th></tr>
+      </thead><tbody id="cookieRows"></tbody></table>
+    </section>
+
+    <!-- DOMAINS -->
+    <section class="view" id="view-domains">
+      <div class="view-head"><h2>Domain activity</h2></div>
+      <table class="grid"><thead>
+        <tr><th>Risk</th><th>Domain</th><th>Events</th></tr>
+      </thead><tbody id="domainRows"></tbody></table>
+    </section>
+
+<!-- INVESTIGATION -->
+<section class="view" id="view-investigation">
+
+  <div class="view-head">
+    <h2>Investigation</h2>
+  </div>
+
+  <div id="investigationPanel">
+
+    <div class="muted">
+      Select an event from Live Activity, or a domain from the Domains tab, to investigate.
+    </div>
+
+  </div>
+
+</section>   
+ <!-- SESSIONS -->
+    <section class="view" id="view-sessions">
+      <div class="view-head"><h2>Browsing sessions</h2>
+        <div class="row-controls"><span class="muted" id="sessionCount"></span></div>
+      </div>
+      <table class="grid"><thead>
+        <tr><th>Risk</th><th>Session</th><th>Primary domain</th><th>Started</th><th>Duration</th><th>Domains</th><th>Trackers</th><th>Events</th></tr>
+      </thead><tbody id="sessionRows"></tbody></table>
+      <div id="sessionDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- FINDINGS -->
+    <section class="view" id="view-findings">
+      <div class="view-head"><h2>Forensic findings</h2>
+        <div class="row-controls">
+          <select id="findingSeverity">
+            <option value="">All severities</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+          <button id="runDetection" class="btn ghost" title="Run a full detection pass">Re-scan</button>
+          <button id="exportAllFindings" class="btn ghost">Export all</button>
+          <button id="exportSevFindings" class="btn ghost">Export severity</button>
+          <span class="muted" id="findingCount"></span>
+        </div>
+      </div>
+      <table class="grid"><thead>
+        <tr><th>Severity</th><th>Title</th><th>Confidence</th><th>Domain</th><th>Session</th><th>Last seen</th></tr>
+      </thead><tbody id="findingRows"></tbody></table>
+      <div id="findingDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- TIMELINE -->
+    <section class="view" id="view-timeline">
+      <div class="view-head"><h2>Forensic timeline</h2>
+        <div class="row-controls">
+          <button id="timelineBuild" class="btn" title="Merge live events, findings &amp; acquisitions into one timeline">Build / rebuild</button>
+          <button id="timelineExport" class="btn ghost">Export</button>
+          <span class="muted" id="timelineMeta"></span>
+        </div>
+      </div>
+
+      <div class="tl-filters" id="timelineFilters">
+        <input id="tlQ" placeholder="search title, detail, domain, tag…" />
+        <select id="tlSource"><option value="">Any source</option></select>
+        <select id="tlArtifact"><option value="">Any artifact</option></select>
+        <select id="tlSeverity">
+          <option value="">Any severity</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <select id="tlBrowser"><option value="">Any browser</option></select>
+        <select id="tlProfile"><option value="">Any profile</option></select>
+        <input id="tlDomain" placeholder="domain contains…" />
+        <label class="chk">from <input id="tlSince" type="datetime-local" /></label>
+        <label class="chk">to <input id="tlUntil" type="datetime-local" /></label>
+        <label class="chk"><input type="checkbox" id="tlCorrelated" /> correlated only</label>
+        <button id="tlApply" class="btn">Apply</button>
+        <button id="tlReset" class="btn ghost">Reset</button>
+      </div>
+
+      <table class="grid tl-table"><thead>
+        <tr><th>Time</th><th>Source</th><th>Category</th><th>Severity</th><th>Title</th><th>Domain</th><th>Correlation</th></tr>
+      </thead><tbody id="timelineRows"></tbody></table>
+      <div class="more"><button id="timelineMore" class="btn ghost hidden">Load more</button></div>
+      <div id="timelineDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- EXTENSIONS -->
+    <section class="view" id="view-extensions">
+      <div class="view-head"><h2>Extension forensics</h2>
+        <div class="row-controls">
+          <button id="extScan" class="btn" title="Analyze acquired extension artifacts (no reacquisition)">Scan extensions</button>
+          <button id="extExport" class="btn ghost">Export</button>
+          <span class="muted" id="extMeta"></span>
+        </div>
+      </div>
+
+      <div class="ext-cards" id="extCards"></div>
+
+      <div class="tl-filters" id="extFilters">
+        <input id="exQ" placeholder="search name, id, permission…" />
+        <select id="exRisk">
+          <option value="">Any risk</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <select id="exBrowser"><option value="">Any browser</option></select>
+        <select id="exState">
+          <option value="">Any state</option>
+          <option value="enabled">enabled</option>
+          <option value="disabled">disabled</option>
+          <option value="unknown">unknown</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="exCorrelated" /> correlated only</label>
+        <button id="exApply" class="btn">Apply</button>
+        <button id="exReset" class="btn ghost">Reset</button>
+      </div>
+
+      <table class="grid ext-table"><thead>
+        <tr><th>Risk</th><th>Extension</th><th>Browser</th><th>Version</th><th>State</th><th>Permissions</th><th>Links</th></tr>
+      </thead><tbody id="extRows"></tbody></table>
+      <div id="extDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- CACHE -->
+    <section class="view" id="view-cache">
+      <div class="view-head"><h2>Cache forensics</h2>
+        <div class="row-controls">
+          <button id="cacheScan" class="btn" title="Analyze acquired cache artifacts + metadata-only on-disk caches">Scan cache</button>
+          <button id="cacheExport" class="btn ghost">Export</button>
+          <span class="muted" id="cacheMeta"></span>
+        </div>
+      </div>
+
+      <div class="ext-cards" id="cacheCards"></div>
+
+      <div class="tl-filters" id="cacheFilters">
+        <input id="caQ" placeholder="search cache name, type, scope, domain…" />
+        <select id="caRisk">
+          <option value="">Any risk</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <select id="caType"><option value="">Any type</option></select>
+        <select id="caBrowser"><option value="">Any browser</option></select>
+        <label class="chk"><input type="checkbox" id="caCorrelated" /> correlated only</label>
+        <button id="caApply" class="btn">Apply</button>
+        <button id="caReset" class="btn ghost">Reset</button>
+      </div>
+
+      <table class="grid ext-table"><thead>
+        <tr><th>Risk</th><th>Cache store</th><th>Browser</th><th>Entries</th><th>Size</th><th>Domains</th><th>Links</th></tr>
+      </thead><tbody id="cacheRows"></tbody></table>
+      <div class="more"><button id="cacheMore" class="btn ghost hidden">Load more</button></div>
+      <div id="cacheDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- INTEGRITY -->
+    <section class="view" id="view-integrity">
+      <div class="view-head"><h2>Evidence integrity</h2>
+        <div class="row-controls">
+          <button id="integrityVerifyAll" class="btn" title="Register baselines and verify all evidence (SHA256)">Verify all</button>
+          <button id="integrityExport" class="btn ghost">Export</button>
+          <span class="muted" id="integrityMeta"></span>
+        </div>
+      </div>
+
+      <div class="ext-cards" id="integrityCards"></div>
+
+      <div class="tl-filters" id="integrityFilters">
+        <input id="inQ" placeholder="search label, id, hash…" />
+        <select id="inType"><option value="">Any type</option></select>
+        <select id="inStatus">
+          <option value="">Any status</option>
+          <option value="VALID">VALID</option>
+          <option value="MODIFIED">MODIFIED</option>
+          <option value="MISSING">MISSING</option>
+          <option value="UNKNOWN">UNKNOWN</option>
+        </select>
+        <button id="inApply" class="btn">Apply</button>
+        <button id="inReset" class="btn ghost">Reset</button>
+      </div>
+
+      <table class="grid ext-table"><thead>
+        <tr><th>Status</th><th>Type</th><th>Evidence</th><th>SHA256</th><th>Verified</th><th>Links</th></tr>
+      </thead><tbody id="integrityRows"></tbody></table>
+      <div class="more"><button id="integrityMore" class="btn ghost hidden">Load more</button></div>
+      <div id="integrityDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- REPORTS -->
+    <section class="view" id="view-reports">
+      <div class="view-head"><h2>Forensic reports</h2>
+        <div class="row-controls">
+          <span class="muted" id="reportMeta"></span>
+        </div>
+      </div>
+
+      <div class="ext-cards" id="reportCards"></div>
+
+      <div class="report-create" id="reportCreate">
+        <div class="rc-row">
+          <label class="rc-label">Report type</label>
+          <select id="rpType">
+            <option value="executive">Executive Summary Report</option>
+            <option value="investigation">Investigation Report</option>
+            <option value="timeline">Timeline Report</option>
+            <option value="acquisition">Acquisition Report</option>
+            <option value="extension">Extension Report</option>
+            <option value="cache">Cache Report</option>
+            <option value="integrity">Integrity Report</option>
+            <option value="findings">Findings Report</option>
+            <option value="full-case">Full Case Report</option>
+          </select>
+          <select id="rpScopeType">
+            <option value="all">All evidence</option>
+            <option value="domain">By domain</option>
+            <option value="browser">By browser</option>
+          </select>
+          <input id="rpScopeValue" placeholder="scope value (domain / browser)" class="hidden" />
+          <button id="rpCreate" class="btn">Generate report</button>
+        </div>
+        <div class="rc-templates" id="rpTemplates"></div>
+      </div>
+
+      <div class="tl-filters" id="reportFilters">
+        <input id="rlQ" placeholder="search report title, type, scope…" />
+        <select id="rlType"><option value="">Any type</option></select>
+        <button id="rlApply" class="btn">Apply</button>
+        <button id="rlReset" class="btn ghost">Reset</button>
+      </div>
+
+      <table class="grid ext-table"><thead>
+        <tr><th>Type</th><th>Title</th><th>Scope</th><th>Evidence</th><th>Integrity</th><th>Created</th></tr>
+      </thead><tbody id="reportRows"></tbody></table>
+      <div id="reportDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- THREAT HUNTING -->
+    <section class="view" id="view-hunting">
+      <div class="view-head"><h2>Advanced threat hunting</h2>
+        <div class="row-controls">
+          <button id="huntScan" class="btn" title="Hunt across all evidence sources">Run hunt</button>
+          <button id="huntExportHtml" class="btn ghost">HTML</button>
+          <button id="huntExportJson" class="btn ghost">JSON</button>
+          <button id="huntExportPdf" class="btn ghost">PDF</button>
+          <span class="muted" id="huntMeta"></span>
+        </div>
+      </div>
+
+      <div class="ext-cards" id="huntCards"></div>
+
+      <div class="hunt-split">
+        <div class="hunt-col">
+          <h3 class="inv-h3">Multi-stage threat chains</h3>
+          <table class="grid ext-table"><thead>
+            <tr><th>Severity</th><th>Chain</th><th>Domain</th><th>Links</th></tr>
+          </thead><tbody id="huntChainRows"></tbody></table>
+        </div>
+      </div>
+
+      <div class="tl-filters" id="huntFilters">
+        <input id="huQ" placeholder="search finding, hunt, domain…" />
+        <select id="huHunt"><option value="">Any hunt</option></select>
+        <select id="huSeverity">
+          <option value="">Any severity</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="INFO">INFO</option>
+        </select>
+        <button id="huApply" class="btn">Apply</button>
+        <button id="huReset" class="btn ghost">Reset</button>
+      </div>
+
+      <h3 class="inv-h3">Threat findings</h3>
+      <table class="grid ext-table"><thead>
+        <tr><th>Severity</th><th>Hunt</th><th>Finding</th><th>Domains</th><th>Confidence</th></tr>
+      </thead><tbody id="huntRows"></tbody></table>
+      <div id="huntDetail" class="case-detail hidden"></div>
+    </section>
+
+ <!-- GRAPH -->
+    <section class="view" id="view-graph">
+      <div class="view-head"><h2>Relationship graph</h2>
+        <div class="row-controls">
+          <input id="graphSearch" placeholder="search node…" />
+          <button id="graphClustersBtn" class="btn ghost">Clusters</button>
+          <button id="graphRebuildBtn" class="btn ghost">Rebuild</button>
+          <button id="graphExportJson" class="btn ghost">JSON</button>
+          <button id="graphExportGraphml" class="btn ghost">GraphML</button>
+          <button id="graphExportHtml" class="btn ghost">HTML</button>
+        </div>
+      </div>
+      <div class="graph-toolbar">
+        <div class="graph-filters" id="graphTypeFilters"></div>
+        <div class="graph-filters" id="graphRiskFilters"></div>
+        <div class="graph-zoom">
+          <button id="gZoomOut" class="btn ghost">−</button>
+          <button id="gZoomIn" class="btn ghost">+</button>
+          <button id="gZoomReset" class="btn ghost">Reset</button>
+          <span class="muted" id="graphMeta"></span>
+        </div>
+      </div>
+      <div class="graph-stage" id="graphStage">
+        <svg id="graphSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="graphPanel" class="graph-panel hidden"></div>
+        <div id="graphLegend" class="graph-legend"></div>
+      </div>
+    </section>
+
+ <!-- CASES -->
+    <section class="view" id="view-cases">
+      <div class="view-head"><h2>Evidence cases</h2>
+        <div class="row-controls"><button id="newCase" class="btn">+ New case (last 24h)</button></div>
+      </div>
+      <div class="cases" id="caseList"></div>
+      <div id="caseDetail" class="case-detail hidden"></div>
+    </section>
+
+    <!-- ACQUIRE -->
+    <section class="view" id="view-acquire">
+      <div class="view-head">
+        <h2>Browser acquisition</h2>
+        <div class="row-controls">
+          <button id="acqDiscover" class="btn ghost" title="Scan this machine for installed browsers and profiles">Discover browsers</button>
+          <span class="muted" id="acqHostMeta"></span>
+        </div>
+      </div>
+
+      <div class="acq-banner">
+        Read-only acquisition. Source browser data is never modified; locked
+        databases are copied before reading; credentials are never decrypted —
+        only the presence and length of encrypted fields are recorded.
+      </div>
+
+      <div class="acq-setup">
+        <div class="acq-pickers">
+          <label class="acq-field">Browser / profile
+            <select id="acqProfile"><option value="">Discover browsers first…</option></select>
+          </label>
+          <button id="acqRun" class="btn" disabled>Acquire selected →</button>
+          <span class="muted" id="acqRunStatus"></span>
+        </div>
+        <div class="acq-artifacts" id="acqArtifacts"></div>
+      </div>
+
+      <h3 class="acq-h3">Acquisition runs</h3>
+      <table class="grid"><thead>
+        <tr><th>Acquired</th><th>Browser</th><th>Version</th><th>Profile</th><th>Host</th><th>Artifacts</th><th>Records</th><th></th></tr>
+      </thead><tbody id="acqRows"></tbody></table>
+      <div id="acqDetail" class="case-detail hidden"></div>
+    </section>
+  </main>
+
+  <!-- tiny modal for creating a case -->
+  <div class="modal hidden" id="caseModal">
+    <div class="modal-card">
+      <h3>New case</h3>
+      <label>Title<input id="caseTitle" placeholder="e.g. Suspicious tracking on news sites" /></label>
+      <label>Notes<textarea id="caseNotes" rows="3" placeholder="Optional context…"></textarea></label>
+      <p class="muted" id="caseScope"></p>
+      <div class="modal-actions">
+        <button class="btn ghost" id="caseCancel">Cancel</button>
+        <button class="btn" id="caseConfirm">Create case</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- scoped clear-data modal -->
+  <div class="modal hidden" id="clearModal">
+    <div class="modal-card">
+      <h3>Clear data</h3>
+      <p class="muted">Choose what to delete. Each scope is independent and cannot be undone.</p>
+      <div class="scope-list">
+        <label class="scope-item"><input type="checkbox" id="scopeEvents" />
+          <span><b>Events, cases, findings &amp; graph</b><br>
+          <span class="muted">All captured activity and everything derived from it.</span></span></label>
+        <label class="scope-item"><input type="checkbox" id="scopeAcq" />
+          <span><b>Acquisitions</b><br>
+          <span class="muted">Stored browser acquisition runs and their records.</span></span></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="clearCancel">Cancel</button>
+        <button class="btn" id="clearConfirm">Delete selected</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
