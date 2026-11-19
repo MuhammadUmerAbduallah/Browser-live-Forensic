@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "scannedAt": 0,
+  "meta": {
+    "scanned": false,
+    "scannedAt": 0,
+    "total": 0,
+    "findingCount": 0,
+    "byRiskLevel": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "INFO": 0
+    },
+    "byBrowser": {},
+    "bySeverity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "INFO": 0
+    },
+    "enabled": 0,
+    "disabled": 0,
+    "correlated": 0
+  },
+  "profiles": [],
+  "findings": []
+}
