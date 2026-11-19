@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "updatedAt": 0,
+  "meta": {
+    "built": false,
+    "updatedAt": 0,
+    "total": 0,
+    "custodyCount": 0,
+    "byStatus": {
+      "VALID": 0,
+      "MODIFIED": 0,
+      "MISSING": 0,
+      "UNKNOWN": 0
+    },
+    "byType": {},
+    "lastVerifiedAt": 0
+  },
+  "records": [],
+  "custody": []
+}

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "builtAt": 0,
+  "meta": {
+    "built": false,
+    "builtAt": 0,
+    "total": 0,
+    "bySource": {},
+    "bySeverity": {},
+    "byCategory": {},
+    "byArtifact": {},
+    "correlated": 0,
+    "correlationEdges": 0,
+    "correlationsByType": {},
+    "since": null,
+    "until": null,
+    "browsers": [],
+    "profiles": []
+  },
+  "edges": [],
+  "entries": []
+}
